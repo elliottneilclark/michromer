@@ -3,8 +3,8 @@ extern crate michromer;
 use michromer::client::Client;
 
 fn get_key() -> String {
-    return option_env!("STOCKFIGHTER_KEY")
-               .expect("Need to set STOCKFIGHTER_KEY")
+    return option_env!("SF_KEY")
+               .expect("Need to set SF_KEY")
                .to_string();
 }
 
