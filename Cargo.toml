@@ -1,0 +1,8 @@
+[package]
+name = "michromer"
+version = "0.1.0"
+authors = ["Elliott Clark <elliott@fb.com>"]
+
+[dependencies]
+hyper = "0.9.5"
+rustc-serialize = "0.3.19"
