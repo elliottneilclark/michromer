@@ -13,6 +13,7 @@ pub struct Level {
     pub tickers: Vec<String>,
     pub venues: Vec<String>,
 }
+
 impl Level {
     pub fn new(response: &mut Response) -> Result<Level, Error> {
         let mut buf = String::new();

@@ -1,4 +1,3 @@
-use std::error::Error as StdError;
 use std::io::Error as IOError;
 use hyper::error::Error as HyperError;
 use rustc_serialize::json::DecoderError as JSONDecoderError;
