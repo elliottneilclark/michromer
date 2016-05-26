@@ -129,11 +129,16 @@ pub struct OrderStatusResponse {
     pub totalFilled: u64,
 }
 
-pub fn parse_response<T: Decodable>(response: &mut Response) -> Result<T, Error> {
-    let mut buf = String::new();
-    try!(response.read_to_string(&mut buf));
-    let l: T = try!(json::decode(&buf));
-    Ok(l)
+#[derive(Debug)]
+pub struct Decoder {
+}
+impl Decoder {
+    pub fn parse_response<T: Decodable>(&self, response: &mut Response) -> Result<T, Error> {
+        let mut buf = String::new();
+        try!(response.read_to_string(&mut buf));
+        let l: T = try!(json::decode(&buf));
+        Ok(l)
+    }
 }
 
 

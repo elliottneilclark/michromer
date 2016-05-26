@@ -1,4 +1,5 @@
 use error::Result;
+use http::HttpClient;
 use http::AuthHttpClient;
 use rustc_serialize::json;
 use data::{Level, HeartBeatResponse, VenueHeartBeatResponse, StockListResponse, OrderbookResponse,
@@ -8,26 +9,27 @@ static VENUE_URL: &'static str = "https://api.stockfighter.io/ob/api/venues/";
 static HEARTBEAT_URL: &'static str = "https://api.stockfighter.io/ob/api/heartbeat";
 
 /// Client for starting a new level of Stockfighter.
-pub struct Client {
-    http_client: AuthHttpClient,
+pub struct Client<T: HttpClient + Clone> {
+    http_client: T,
 }
 
-impl Client {
-
+impl<T: HttpClient + Clone> Client<T> {
     /// Start a new level
     ///
     /// It appears that this will also continue a current level
     /// if there is already a level ongoing.
-    pub fn start_level(&self, level: &str) -> Result<LevelClient> {
+    pub fn start_level(&self, level: &str) -> Result<LevelClient<T>> {
         // Start a level
         let url = "https://www.stockfighter.io/gm/levels/".to_string() + level;
         let level: Level = try!(self.http_client.post(&url, None));
         // Give it back.
         Ok(LevelClient::new(self.http_client.clone(), level))
     }
+}
 
+impl Client<AuthHttpClient> {
     /// Given an api key construct a new Client that can interact with stockfighter's game api.
-    pub fn new(api_key: &str) -> Client {
+    pub fn new(api_key: &str) -> Client<AuthHttpClient> {
         Client { http_client: AuthHttpClient::new(api_key) }
     }
 }
@@ -37,12 +39,12 @@ impl Client {
 /// It's wrapper around an http client. As such it can return
 /// errors for parsing or for network issues.
 #[derive(Debug)]
-pub struct LevelClient {
-    http_client: AuthHttpClient,
+pub struct LevelClient<T: HttpClient + Clone> {
+    http_client: T,
     pub level: Level,
 }
 
-impl LevelClient {
+impl<T: HttpClient + Clone> LevelClient<T> {
     /// See if this Level is up.
     ///
     /// This should really only be used to sanity check that the level
@@ -63,8 +65,8 @@ impl LevelClient {
     /// # Errors
     ///
     /// Errors out when:
-    /// - http fails
-    /// - parsing fails
+    ///  http fails
+    ///  parsing fails
     pub fn stock_list(&self, venue: &str) -> Result<StockListResponse> {
         let url = VENUE_URL.to_string() + venue + "/stocks";
         self.http_client.get::<StockListResponse>(&url)
@@ -115,10 +117,19 @@ impl LevelClient {
 
 
     /// Constructs a new level client.
-    fn new(http_client: AuthHttpClient, level: Level) -> LevelClient {
+    fn new(http_client: T, level: Level) -> LevelClient<T> {
         LevelClient {
             http_client: http_client.clone(),
             level: level,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_start_level() {
+        // [TODO]: Fill out a test that mocks the http connection stuff - 2016-05-26 02:03P
     }
 }
