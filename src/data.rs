@@ -1,13 +1,11 @@
 #![allow(non_snake_case)]
 
-use hyper::client::Response;
 use rustc_serialize::Decodable;
 use rustc_serialize::json;
-use std::io::Read;
 use error::Error;
 use std::collections::HashMap;
 
-#[derive(RustcDecodable, RustcEncodable, Debug)]
+#[derive(RustcDecodable, RustcEncodable, Clone, Debug)]
 pub struct Level {
     pub ok: bool,
     pub instanceId: i64,
@@ -129,16 +127,11 @@ pub struct OrderStatusResponse {
     pub totalFilled: u64,
 }
 
-#[derive(Debug)]
-pub struct Decoder {
-}
-impl Decoder {
-    pub fn parse_response<T: Decodable>(&self, response: &mut Response) -> Result<T, Error> {
-        let mut buf = String::new();
-        try!(response.read_to_string(&mut buf));
-        let l: T = try!(json::decode(&buf));
-        Ok(l)
-    }
+
+
+pub fn parse_response<T: Decodable>(buf: &str) -> Result<T, Error> {
+    let l: T = try!(json::decode(&buf));
+    Ok(l)
 }
 
 

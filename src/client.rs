@@ -1,14 +1,16 @@
 use error::Result;
 use http::HttpClient;
 use http::AuthHttpClient;
+use rustc_serialize::Decodable;
 use rustc_serialize::json;
-use data::{Level, HeartBeatResponse, VenueHeartBeatResponse, StockListResponse, OrderbookResponse,
-           QuoteResponse, Order, OrderResponse, OrderStatusResponse};
+use data::{HeartBeatResponse, Level, Order, OrderResponse, OrderStatusResponse, OrderbookResponse,
+           QuoteResponse, StockListResponse, VenueHeartBeatResponse, parse_response};
 
 static VENUE_URL: &'static str = "https://api.stockfighter.io/ob/api/venues/";
 static HEARTBEAT_URL: &'static str = "https://api.stockfighter.io/ob/api/heartbeat";
 
 /// Client for starting a new level of Stockfighter.
+#[derive(Debug, Clone)]
 pub struct Client<T: HttpClient + Clone> {
     http_client: T,
 }
@@ -21,7 +23,8 @@ impl<T: HttpClient + Clone> Client<T> {
     pub fn start_level(&self, level: &str) -> Result<LevelClient<T>> {
         // Start a level
         let url = "https://www.stockfighter.io/gm/levels/".to_string() + level;
-        let level: Level = try!(self.http_client.post(&url, None));
+        let res = try!(self.http_client.post(&url, None));
+        let level: Level = try!(parse_response(&res));
         // Give it back.
         Ok(LevelClient::new(self.http_client.clone(), level))
     }
@@ -38,7 +41,7 @@ impl Client<AuthHttpClient> {
 /// stock api is defined [here](https://starfighter.readme.io/docs)
 /// It's wrapper around an http client. As such it can return
 /// errors for parsing or for network issues.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LevelClient<T: HttpClient + Clone> {
     http_client: T,
     pub level: Level,
@@ -51,13 +54,13 @@ impl<T: HttpClient + Clone> LevelClient<T> {
     /// hasn't been torn down.
     pub fn heart_beat(&self) -> Result<HeartBeatResponse> {
         let url = HEARTBEAT_URL;
-        self.http_client.get::<HeartBeatResponse>(url)
+        self.do_get(url)
     }
 
     /// Check if a venue is ok.
     pub fn venue_heart_beat(&self, venue: &str) -> Result<VenueHeartBeatResponse> {
         let url = VENUE_URL.to_string() + venue + "/heartbeat";
-        self.http_client.get::<VenueHeartBeatResponse>(&url)
+        self.do_get(&url)
     }
 
     /// Get a list of all the stocks this venue can accept trades for.
@@ -69,7 +72,7 @@ impl<T: HttpClient + Clone> LevelClient<T> {
     ///  parsing fails
     pub fn stock_list(&self, venue: &str) -> Result<StockListResponse> {
         let url = VENUE_URL.to_string() + venue + "/stocks";
-        self.http_client.get::<StockListResponse>(&url)
+        self.do_get(&url)
     }
 
     /// Get a copy of the venue's order book. Stockfighter suggests
@@ -77,13 +80,13 @@ impl<T: HttpClient + Clone> LevelClient<T> {
     /// as little as possible.
     pub fn orderbook(&self, venue: &str, stock: &str) -> Result<OrderbookResponse> {
         let url = VENUE_URL.to_string() + venue + "/stocks/" + stock;
-        self.http_client.get::<OrderbookResponse>(&url)
+        self.do_get(&url)
     }
 
     /// Ask a venue about the current state of a stock.
     pub fn quote(&self, venue: &str, stock: &str) -> Result<QuoteResponse> {
         let url = VENUE_URL.to_string() + venue + "/stocks/" + stock + "/quote";
-        self.http_client.get::<QuoteResponse>(&url)
+        self.do_get(&url)
     }
 
 
@@ -92,15 +95,14 @@ impl<T: HttpClient + Clone> LevelClient<T> {
         let url = VENUE_URL.to_string() + &o.venue + "/stocks/" + &o.stock + "/orders";
         debug!("Placing  {:?}", o);
         let encoded = try!(json::encode(o));
-        let resp = self.http_client.post(&url, Some(&encoded));
-        debug!("Placed {:?}", resp);
-        resp
+        let res = try!(self.http_client.post(&url, Some(&encoded)));
+        parse_response(&res)
     }
 
     /// Find out how a specific order on a specific venue is doing.
     pub fn order_status(&self, venue: &str, stock: &str, id: u64) -> Result<OrderStatusResponse> {
         let url = VENUE_URL.to_string() + venue + "/stocks/" + stock + "/orders/" + &id.to_string();
-        self.http_client.get::<OrderStatusResponse>(&url)
+        self.do_get(&url)
     }
 
     /// Try and cancel an order.
@@ -110,9 +112,18 @@ impl<T: HttpClient + Clone> LevelClient<T> {
                id,
                stock,
                venue);
-        let status = self.http_client.delete::<OrderStatusResponse>(&url);
+        let status = self.do_delete::<OrderStatusResponse>(&url);
         debug!("Cancled Order  {:?}", status);
         status
+    }
+
+    fn do_get<D: Decodable>(&self, url: &str) -> Result<D> {
+        let res = try!(self.http_client.get(url));
+        parse_response(&res)
+    }
+    fn do_delete<D: Decodable>(&self, url: &str) -> Result<D> {
+        let res = try!(self.http_client.delete(url));
+        parse_response(&res)
     }
 
 
@@ -127,9 +138,51 @@ impl<T: HttpClient + Clone> LevelClient<T> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use http::HttpClient;
+    use error::Result;
+    use data::Level;
+    use rustc_serialize::json;
+    use std::collections::HashMap;
+
+
+    #[derive(Debug, Clone)]
+    struct TestHttpClient {
+        post_result: String,
+    }
+    #[allow(unused_variables)]
+    impl HttpClient for TestHttpClient {
+        fn get(&self, url: &str) -> Result<String> {
+            Ok("".to_string())
+        }
+        fn delete(&self, url: &str) -> Result<String> {
+            Ok("".to_string())
+        }
+        fn post(&self, url: &str, body: Option<&str>) -> Result<String> {
+            Ok(self.post_result.to_owned())
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_start_level_bad_resp() {
+        let json_resp = "{}";
+        let c = Client { http_client: TestHttpClient { post_result: json_resp.to_string() } };
+        c.start_level("test").unwrap();
+    }
 
     #[test]
     fn test_start_level() {
-        // [TODO]: Fill out a test that mocks the http connection stuff - 2016-05-26 02:03P
+        let level = Level{
+            ok: true,
+            instanceId: 1090,
+            account: "myac".to_string(),
+            instructions: HashMap::new(),
+            tickers: vec!("test".to_string()),
+            venues: vec!("ven".to_string()),
+        };
+        let json_resp = json::encode(&level).unwrap();
+        let c = Client { http_client: TestHttpClient { post_result: json_resp.to_string() } };
+        c.start_level("test").unwrap();
     }
 }
