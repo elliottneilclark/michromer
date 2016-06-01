@@ -1,6 +1,12 @@
+#![feature(custom_derive, plugin)]
+#![plugin(serde_macros)]
+extern crate serde_json;
+extern crate serde;
+
 #[macro_use]
 extern crate hyper;
-extern crate rustc_serialize;
+
+
 #[macro_use]
 extern crate log;
 

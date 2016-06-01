@@ -1,8 +1,8 @@
 use error::Result;
 use http::HttpClient;
 use http::AuthHttpClient;
-use rustc_serialize::Decodable;
-use rustc_serialize::json;
+use serde::de::Deserialize;
+use serde_json;
 use data::{HeartBeatResponse, Level, Order, OrderResponse, OrderStatusResponse, OrderbookResponse,
            QuoteResponse, StockListResponse, VenueHeartBeatResponse, parse_response};
 
@@ -94,7 +94,7 @@ impl<T: HttpClient + Clone> LevelClient<T> {
     pub fn order(&self, o: &Order) -> Result<OrderResponse> {
         let url = VENUE_URL.to_string() + &o.venue + "/stocks/" + &o.stock + "/orders";
         debug!("Placing  {:?}", o);
-        let encoded = try!(json::encode(o));
+        let encoded = try!(serde_json::to_string(o));
         let res = try!(self.http_client.post(&url, Some(&encoded)));
         parse_response(&res)
     }
@@ -117,11 +117,11 @@ impl<T: HttpClient + Clone> LevelClient<T> {
         status
     }
 
-    fn do_get<D: Decodable>(&self, url: &str) -> Result<D> {
+    fn do_get<D: Deserialize>(&self, url: &str) -> Result<D> {
         let res = try!(self.http_client.get(url));
         parse_response(&res)
     }
-    fn do_delete<D: Decodable>(&self, url: &str) -> Result<D> {
+    fn do_delete<D: Deserialize>(&self, url: &str) -> Result<D> {
         let res = try!(self.http_client.delete(url));
         parse_response(&res)
     }
@@ -142,7 +142,7 @@ mod tests {
     use http::HttpClient;
     use error::Result;
     use data::Level;
-    use rustc_serialize::json;
+    use serde_json;
     use std::collections::HashMap;
 
 
@@ -173,15 +173,15 @@ mod tests {
 
     #[test]
     fn test_start_level() {
-        let level = Level{
+        let level = Level {
             ok: true,
-            instanceId: 1090,
+            instance_id: 1090,
             account: "myac".to_string(),
             instructions: HashMap::new(),
-            tickers: vec!("test".to_string()),
-            venues: vec!("ven".to_string()),
+            tickers: vec!["test".to_string()],
+            venues: vec!["ven".to_string()],
         };
-        let json_resp = json::encode(&level).unwrap();
+        let json_resp = serde_json::to_string(&level).unwrap();
         let c = Client { http_client: TestHttpClient { post_result: json_resp.to_string() } };
         c.start_level("test").unwrap();
     }
