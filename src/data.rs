@@ -2,6 +2,7 @@ use error::Error;
 use serde::de::Deserialize;
 use serde_json;
 use std::collections::HashMap;
+use chrono::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Level {
@@ -75,9 +76,9 @@ pub struct QuoteResponse {
     #[serde(rename="lastSize")]
     pub last_size: Option<u64>,
     #[serde(rename="lastTrade")]
-    pub last_trade: Option<String>,
+    pub last_trade: Option<DateTime<UTC>>,
     #[serde(rename="quoteTime")]
-    pub quote_time: Option<String>,
+    pub quote_time: Option<DateTime<UTC>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -98,6 +99,7 @@ pub struct OrderResponse {
     pub ok: bool,
     pub symbol: String,
     pub venue: String,
+    pub direction: Option<String>,
     #[serde(rename="originalQty")]
     pub original_qty: u64,
     pub qty: u64,
@@ -106,7 +108,7 @@ pub struct OrderResponse {
     pub order_type: String,
     pub id: u64,
     pub account: String,
-    pub ts: String,
+    pub ts: DateTime<UTC>,
     pub fills: Vec<Fill>,
     #[serde(rename="totalFilled")]
     pub total_filled: u64,
@@ -117,31 +119,8 @@ pub struct OrderResponse {
 pub struct Fill {
     pub price: u64,
     pub qty: u64,
-    pub ts: String,
+    pub ts: DateTime<UTC>,
 }
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct OrderStatusResponse {
-    pub ok: bool,
-    pub symbol: String,
-    pub venue: String,
-    pub direction: String,
-    #[serde(rename="originalQty")]
-    pub original_qty: u64,
-    pub qty: u64,
-    pub price: u64,
-    #[serde(rename="orderType")]
-    pub order_type: String,
-    pub id: u64,
-    pub account: String,
-    pub fills: Vec<Fill>,
-    pub ts: String,
-    pub open: bool,
-    #[serde(rename="totalFilled")]
-    pub total_filled: u64,
-}
-
-
 
 pub fn parse_response<T: Deserialize>(buf: &str) -> Result<T, Error> {
     let l: T = try!(serde_json::from_str(&buf));
@@ -151,6 +130,7 @@ pub fn parse_response<T: Deserialize>(buf: &str) -> Result<T, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::*;
     use serde_json;
     use std::collections::HashMap;
 
@@ -208,8 +188,8 @@ mod tests {
             ask_depth: 9,
             last: Some(102),
             last_size: Some(3),
-            last_trade: Some("Sometime".to_string()),
-            quote_time: Some("Someothertime".to_string()),
+            last_trade: Some("2015-12-04T09:02:16.680986205Z".parse().unwrap()),
+            quote_time: Some("2015-12-04T09:02:16.680986205Z".parse().unwrap()),
         };
         let res_string = serde_json::to_string(&qr).unwrap();
         assert!(res_string.contains("bidSize"));
@@ -224,8 +204,9 @@ mod tests {
 
     #[test]
     fn test_order_response_field_name() {
-        let or = OrderResponse{
+        let or = OrderResponse {
             ok: true,
+            direction: None,
             symbol: "BOOK".to_string(),
             venue: "MYEX".to_string(),
             original_qty: 10,
@@ -234,14 +215,37 @@ mod tests {
             order_type: "limit".to_string(),
             id: 99803,
             account: "MYACC".to_string(),
-            ts: "TIME".to_string(),
+            ts: "2015-12-04T09:02:16.680986205Z".parse().unwrap(),
             fills: vec![],
             total_filled: 1,
-            open: true
+            open: true,
         };
         let res_string = serde_json::to_string(&or).unwrap();
+        println!("{:?}", res_string);
         assert!(res_string.contains("originalQty"));
         assert!(res_string.contains("orderType"));
         assert!(res_string.contains("totalFilled"));
+    }
+
+
+    #[test]
+    fn test_decode_date_time() {
+        let dt_one: DateTime<UTC> = "2015-12-04T09:02:16.680986205Z".parse().unwrap();
+        println!("dt = {:?}", dt_one);
+        let dt_two: DateTime<UTC> = "2015-07-05T22:16:18+00:00".parse().unwrap();
+        println!("dt = {:?}", dt_two);
+    }
+
+    #[test]
+    fn test_decode_order_response() {
+        let o_json = "{\"account\": \"testacc\", \"price\": 26382757, \"id\": 2138, \"open\": \
+                      false, \"venue\": \"TESTEX\", \"orderType\": \"limit\", \"qty\": 0, \
+                      \"direction\": \"buy\", \"fills\": [{\"qty\": 5000, \"ts\": \
+                      \"2016-06-02T16:20:53.024563Z\", \"price\": 26382747}], \"totalFilled\": \
+                      5000, \"originalQty\": 5000, \"symbol\": \"FOOBAR\", \"ts\": \
+                      \"2016-06-02T16:20:53.024542Z\", \"ok\": true}";
+
+        let o: OrderResponse = parse_response(&o_json).unwrap();
+        assert!(o.ok);
     }
 }

@@ -10,7 +10,9 @@ extern crate hyper;
 #[macro_use]
 extern crate log;
 
+extern crate chrono;
+
 pub mod client;
 pub mod data;
-mod error;
-mod http;
+pub mod error;
+pub mod http;

@@ -3,7 +3,7 @@ use http::HttpClient;
 use http::AuthHttpClient;
 use serde::de::Deserialize;
 use serde_json;
-use data::{HeartBeatResponse, Level, Order, OrderResponse, OrderStatusResponse, OrderbookResponse,
+use data::{HeartBeatResponse, Level, Order, OrderResponse, OrderbookResponse,
            QuoteResponse, StockListResponse, VenueHeartBeatResponse, parse_response};
 
 static VENUE_URL: &'static str = "https://api.stockfighter.io/ob/api/venues/";
@@ -100,19 +100,19 @@ impl<T: HttpClient + Clone> LevelClient<T> {
     }
 
     /// Find out how a specific order on a specific venue is doing.
-    pub fn order_status(&self, venue: &str, stock: &str, id: u64) -> Result<OrderStatusResponse> {
+    pub fn order_status(&self, venue: &str, stock: &str, id: u64) -> Result<OrderResponse> {
         let url = VENUE_URL.to_string() + venue + "/stocks/" + stock + "/orders/" + &id.to_string();
         self.do_get(&url)
     }
 
     /// Try and cancel an order.
-    pub fn delete_order(&self, venue: &str, stock: &str, id: u64) -> Result<OrderStatusResponse> {
+    pub fn delete_order(&self, venue: &str, stock: &str, id: u64) -> Result<OrderResponse> {
         let url = VENUE_URL.to_string() + venue + "/stocks/" + stock + "/orders/" + &id.to_string();
         debug!("Cacneling Order {} for Stock {} at Venue {}",
                id,
                stock,
                venue);
-        let status = self.do_delete::<OrderStatusResponse>(&url);
+        let status = self.do_delete::<OrderResponse>(&url);
         debug!("Cancled Order  {:?}", status);
         status
     }
@@ -128,7 +128,7 @@ impl<T: HttpClient + Clone> LevelClient<T> {
 
 
     /// Constructs a new level client.
-    fn new(http_client: T, level: Level) -> LevelClient<T> {
+    pub fn new(http_client: T, level: Level) -> LevelClient<T> {
         LevelClient {
             http_client: http_client.clone(),
             level: level,
