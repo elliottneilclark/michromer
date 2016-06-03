@@ -34,9 +34,12 @@ impl<T: HttpClient + Clone> Client<T> {
 impl Client<AuthHttpClient> {
     /// Given an api key construct a new Client that can interact with stockfighter's game api.
     pub fn new(api_key: &str) -> Client<AuthHttpClient> {
+        Client::new_with_url(api_key, "https://api.stockfighter.io")
+    }
+    pub fn new_with_url(api_key: &str, base_url: &str) -> Client<AuthHttpClient> {
         Client {
             http_client: AuthHttpClient::new(api_key),
-            base_url: "https://api.stockfighter.io".to_string(),
+            base_url: base_url.to_owned(),
         }
     }
 }
@@ -176,8 +179,8 @@ mod tests {
     #[should_panic]
     fn test_start_level_bad_resp() {
         let json_resp = "{}";
-        let c = Client { 
-            http_client: TestHttpClient { post_result: json_resp.to_string(), },
+        let c = Client {
+            http_client: TestHttpClient { post_result: json_resp.to_string() },
             base_url: "http://localhost:8000".to_owned(),
         };
         c.start_level("test").unwrap();
@@ -194,7 +197,7 @@ mod tests {
             venues: vec!["ven".to_string()],
         };
         let json_resp = serde_json::to_string(&level).unwrap();
-        let c = Client { 
+        let c = Client {
             http_client: TestHttpClient { post_result: json_resp.to_string() },
             base_url: "http://localhost:8000".to_owned(),
         };

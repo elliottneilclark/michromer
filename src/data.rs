@@ -101,7 +101,7 @@ impl fmt::Display for OrderDirection {
 
 impl serde::Serialize for OrderDirection {
     fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
-        where S: serde::Serializer,
+        where S: serde::Serializer
     {
         serializer.serialize_str(&self.to_string())
     }
@@ -156,7 +156,7 @@ impl fmt::Display for OrderType {
 
 impl serde::Serialize for OrderType {
     fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
-        where S: serde::Serializer,
+        where S: serde::Serializer
     {
         serializer.serialize_str(&self.to_string())
     }
