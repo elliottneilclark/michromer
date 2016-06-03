@@ -3,16 +3,17 @@ use http::HttpClient;
 use http::AuthHttpClient;
 use serde::de::Deserialize;
 use serde_json;
-use data::{HeartBeatResponse, Level, Order, OrderResponse, OrderbookResponse,
-           QuoteResponse, StockListResponse, VenueHeartBeatResponse, parse_response};
+use data::{HeartBeatResponse, Level, Order, OrderResponse, OrderbookResponse, QuoteResponse,
+           StockListResponse, VenueHeartBeatResponse, parse_response};
 
-static VENUE_URL: &'static str = "https://api.stockfighter.io/ob/api/venues/";
-static HEARTBEAT_URL: &'static str = "https://api.stockfighter.io/ob/api/heartbeat";
+static VENUE_URL: &'static str = "/ob/api/venues/";
+static HEARTBEAT_URL: &'static str = "/ob/api/heartbeat";
 
 /// Client for starting a new level of Stockfighter.
 #[derive(Debug, Clone)]
 pub struct Client<T: HttpClient + Clone> {
     http_client: T,
+    base_url: String,
 }
 
 impl<T: HttpClient + Clone> Client<T> {
@@ -22,18 +23,21 @@ impl<T: HttpClient + Clone> Client<T> {
     /// if there is already a level ongoing.
     pub fn start_level(&self, level: &str) -> Result<LevelClient<T>> {
         // Start a level
-        let url = "https://www.stockfighter.io/gm/levels/".to_string() + level;
+        let url = self.base_url.to_owned() + "/gm/levels/" + level;
         let res = try!(self.http_client.post(&url, None));
         let level: Level = try!(parse_response(&res));
         // Give it back.
-        Ok(LevelClient::new(self.http_client.clone(), level))
+        Ok(LevelClient::new(self.http_client.clone(), level, &self.base_url))
     }
 }
 
 impl Client<AuthHttpClient> {
     /// Given an api key construct a new Client that can interact with stockfighter's game api.
     pub fn new(api_key: &str) -> Client<AuthHttpClient> {
-        Client { http_client: AuthHttpClient::new(api_key) }
+        Client {
+            http_client: AuthHttpClient::new(api_key),
+            base_url: "https://api.stockfighter.io".to_string(),
+        }
     }
 }
 
@@ -45,6 +49,7 @@ impl Client<AuthHttpClient> {
 pub struct LevelClient<T: HttpClient + Clone> {
     http_client: T,
     pub level: Level,
+    pub base_url: String,
 }
 
 impl<T: HttpClient + Clone> LevelClient<T> {
@@ -53,13 +58,13 @@ impl<T: HttpClient + Clone> LevelClient<T> {
     /// This should really only be used to sanity check that the level
     /// hasn't been torn down.
     pub fn heart_beat(&self) -> Result<HeartBeatResponse> {
-        let url = HEARTBEAT_URL;
-        self.do_get(url)
+        let url = self.base_url.to_owned() + HEARTBEAT_URL;
+        self.do_get(&url)
     }
 
     /// Check if a venue is ok.
     pub fn venue_heart_beat(&self, venue: &str) -> Result<VenueHeartBeatResponse> {
-        let url = VENUE_URL.to_string() + venue + "/heartbeat";
+        let url = self.base_url.to_owned() + VENUE_URL + venue + "/heartbeat";
         self.do_get(&url)
     }
 
@@ -71,7 +76,7 @@ impl<T: HttpClient + Clone> LevelClient<T> {
     ///  http fails
     ///  parsing fails
     pub fn stock_list(&self, venue: &str) -> Result<StockListResponse> {
-        let url = VENUE_URL.to_string() + venue + "/stocks";
+        let url = self.base_url.to_owned() + VENUE_URL + venue + "/stocks";
         self.do_get(&url)
     }
 
@@ -79,20 +84,21 @@ impl<T: HttpClient + Clone> LevelClient<T> {
     /// that this will be a slow operation that should be done
     /// as little as possible.
     pub fn orderbook(&self, venue: &str, stock: &str) -> Result<OrderbookResponse> {
-        let url = VENUE_URL.to_string() + venue + "/stocks/" + stock;
+        let url = self.base_url.to_owned() + VENUE_URL + venue + "/stocks/" + stock;
         self.do_get(&url)
     }
 
     /// Ask a venue about the current state of a stock.
     pub fn quote(&self, venue: &str, stock: &str) -> Result<QuoteResponse> {
-        let url = VENUE_URL.to_string() + venue + "/stocks/" + stock + "/quote";
+        let url = self.base_url.to_owned() + VENUE_URL + venue + "/stocks/" + stock + "/quote";
         self.do_get(&url)
     }
 
 
     /// Send in an order, and get back a response.
     pub fn order(&self, o: &Order) -> Result<OrderResponse> {
-        let url = VENUE_URL.to_string() + &o.venue + "/stocks/" + &o.stock + "/orders";
+        let url = self.base_url.to_owned() + VENUE_URL + &o.venue + "/stocks/" + &o.stock +
+                  "/orders";
         debug!("Placing  {:?}", o);
         let encoded = try!(serde_json::to_string(o));
         let res = try!(self.http_client.post(&url, Some(&encoded)));
@@ -101,13 +107,15 @@ impl<T: HttpClient + Clone> LevelClient<T> {
 
     /// Find out how a specific order on a specific venue is doing.
     pub fn order_status(&self, venue: &str, stock: &str, id: u64) -> Result<OrderResponse> {
-        let url = VENUE_URL.to_string() + venue + "/stocks/" + stock + "/orders/" + &id.to_string();
+        let url = self.base_url.to_owned() + VENUE_URL + venue + "/stocks/" + stock + "/orders/" +
+                  &id.to_string();
         self.do_get(&url)
     }
 
     /// Try and cancel an order.
     pub fn delete_order(&self, venue: &str, stock: &str, id: u64) -> Result<OrderResponse> {
-        let url = VENUE_URL.to_string() + venue + "/stocks/" + stock + "/orders/" + &id.to_string();
+        let url = self.base_url.to_owned() + VENUE_URL + venue + "/stocks/" + stock + "/orders/" +
+                  &id.to_string();
         debug!("Cacneling Order {} for Stock {} at Venue {}",
                id,
                stock,
@@ -128,10 +136,11 @@ impl<T: HttpClient + Clone> LevelClient<T> {
 
 
     /// Constructs a new level client.
-    pub fn new(http_client: T, level: Level) -> LevelClient<T> {
+    pub fn new(http_client: T, level: Level, base_url: &str) -> LevelClient<T> {
         LevelClient {
             http_client: http_client.clone(),
             level: level,
+            base_url: base_url.to_owned(),
         }
     }
 }
@@ -167,7 +176,10 @@ mod tests {
     #[should_panic]
     fn test_start_level_bad_resp() {
         let json_resp = "{}";
-        let c = Client { http_client: TestHttpClient { post_result: json_resp.to_string() } };
+        let c = Client { 
+            http_client: TestHttpClient { post_result: json_resp.to_string(), },
+            base_url: "http://localhost:8000".to_owned(),
+        };
         c.start_level("test").unwrap();
     }
 
@@ -182,7 +194,10 @@ mod tests {
             venues: vec!["ven".to_string()],
         };
         let json_resp = serde_json::to_string(&level).unwrap();
-        let c = Client { http_client: TestHttpClient { post_result: json_resp.to_string() } };
+        let c = Client { 
+            http_client: TestHttpClient { post_result: json_resp.to_string() },
+            base_url: "http://localhost:8000".to_owned(),
+        };
         c.start_level("test").unwrap();
     }
 }
