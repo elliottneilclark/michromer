@@ -1,7 +1,7 @@
 [package]
 name = "michromer"
 description = "This is a small library to interact with the stockfighter simulation challenges."
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Elliott Clark <elliott@fb.com>"]
 readme = "README.md"
 license = "MIT"
@@ -9,7 +9,11 @@ repository = "https://github.com/elliottneilclark/michromer"
 
 [dependencies]
 hyper = "0.9.6"
-rustc-serialize = "0.3.19"
+serde = "0.7.7"
+serde_json = "0.7.1"
+serde_macros = "0.7.7"
 log = "0.3.6"
 
-
+[dependencies.chrono]
+version = "0.2"
+features = ["serde"]

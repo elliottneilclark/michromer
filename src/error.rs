@@ -1,9 +1,7 @@
 use std::io::Error as IOError;
 use std::error::Error as StdError;
 use hyper::error::Error as HyperError;
-use rustc_serialize::json::DecoderError as JSONDecoderError;
-use rustc_serialize::json::EncoderError as JSONEncoderError;
-use rustc_serialize::json::ParserError as JSONParseError;
+use serde_json::Error as SerdeJsonError;
 use std::fmt;
 
 
@@ -11,9 +9,7 @@ use std::fmt;
 pub enum Error {
     Hyper(HyperError),
     IO(IOError),
-    JSONDecode(JSONDecoderError),
-    JSONEncode(JSONEncoderError),
-    JSONParse(JSONParseError),
+    JSON(SerdeJsonError),
 }
 
 impl From<IOError> for Error {
@@ -26,19 +22,9 @@ impl From<HyperError> for Error {
         Error::Hyper(e)
     }
 }
-impl From<JSONDecoderError> for Error {
-    fn from(e: JSONDecoderError) -> Error {
-        Error::JSONDecode(e)
-    }
-}
-impl From<JSONEncoderError> for Error {
-    fn from(e: JSONEncoderError) -> Error {
-        Error::JSONEncode(e)
-    }
-}
-impl From<JSONParseError> for Error {
-    fn from(e: JSONParseError) -> Error {
-        Error::JSONParse(e)
+impl From<SerdeJsonError> for Error {
+    fn from(e: SerdeJsonError) -> Error {
+        Error::JSON(e)
     }
 }
 impl fmt::Display for Error {
@@ -51,9 +37,7 @@ impl StdError for Error {
         match *self {
             Error::Hyper(ref e) => e.description(),
             Error::IO(ref e) => e.description(),
-            Error::JSONDecode(ref e) => e.description(),
-            Error::JSONEncode(ref e) => e.description(),
-            Error::JSONParse(ref e) => e.description(),
+            Error::JSON(ref e) => e.description(),
         }
     }
 
@@ -61,10 +45,7 @@ impl StdError for Error {
         match *self {
             Error::Hyper(ref e) => Some(e),
             Error::IO(ref e) => Some(e),
-            Error::JSONDecode(ref e) => Some(e),
-            Error::JSONEncode(ref e) => Some(e),
-            Error::JSONParse(ref e) => Some(e),
-
+            Error::JSON(ref e) => Some(e),
         }
     }
 }

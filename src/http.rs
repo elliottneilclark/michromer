@@ -56,18 +56,21 @@ impl HttpClient for AuthHttpClient {
         let mut r = try!(self.build_get(url).send());
         let mut buf = String::new();
         try!(r.read_to_string(&mut buf));
+        trace!("get buf = {:?}", buf);
         Ok(buf)
     }
     fn post(&self, url: &str, body: Option<&str>) -> Result<String> {
         let mut r = try!(self.build_post(url, body).send());
         let mut buf = String::new();
         try!(r.read_to_string(&mut buf));
+        trace!("post buf = {:?}", buf);
         Ok(buf)
     }
     fn delete(&self, url: &str) -> Result<String> {
         let mut r = try!(self.build_delete(url).send());
         let mut buf = String::new();
         try!(r.read_to_string(&mut buf));
+        trace!("del buf = {:?}", buf);
         Ok(buf)
     }
 }
