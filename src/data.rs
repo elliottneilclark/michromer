@@ -91,9 +91,9 @@ pub enum OrderDirection {
 
 impl fmt::Display for OrderDirection {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let s = match self {
-            &OrderDirection::Buy => "buy",
-            &OrderDirection::Sell => "sell",
+        let s = match *self {
+            OrderDirection::Buy => "buy",
+            OrderDirection::Sell => "sell",
         };
         write!(f, "{}", s)
     }
@@ -143,11 +143,11 @@ pub enum OrderType {
 
 impl fmt::Display for OrderType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let s = match self {
-            &OrderType::Market => "market",
-            &OrderType::Limit => "limit",
-            &OrderType::FillOrKill => "fill-or-kill",
-            &OrderType::ImmediateOrCancel => "immediate-or-cancel",
+        let s = match *self {
+            OrderType::Market => "market",
+            OrderType::Limit => "limit",
+            OrderType::FillOrKill => "fill-or-kill",
+            OrderType::ImmediateOrCancel => "immediate-or-cancel",
 
         };
         write!(f, "{}", s)
