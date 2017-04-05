@@ -100,7 +100,7 @@ impl fmt::Display for OrderDirection {
 }
 
 impl serde::Serialize for OrderDirection {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: serde::Serializer
     {
         serializer.serialize_str(&self.to_string())
@@ -109,7 +109,7 @@ impl serde::Serialize for OrderDirection {
 
 
 impl serde::Deserialize for OrderDirection {
-    fn deserialize<D>(deserializer: &mut D) -> Result<OrderDirection, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<OrderDirection, D::Error>
         where D: serde::de::Deserializer
     {
         struct OrderDirectionVisitor;
@@ -117,7 +117,10 @@ impl serde::Deserialize for OrderDirection {
         impl serde::de::Visitor for OrderDirectionVisitor {
             type Value = OrderDirection;
 
-            fn visit_str<E>(&mut self, value: &str) -> Result<OrderDirection, E>
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("Order Direction")
+            }
+            fn visit_str<E>(self, value: &str) -> Result<OrderDirection, E>
                 where E: serde::de::Error
             {
                 match value {
@@ -155,7 +158,7 @@ impl fmt::Display for OrderType {
 }
 
 impl serde::Serialize for OrderType {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: serde::Serializer
     {
         serializer.serialize_str(&self.to_string())
@@ -164,15 +167,18 @@ impl serde::Serialize for OrderType {
 
 
 impl serde::Deserialize for OrderType {
-    fn deserialize<D>(deserializer: &mut D) -> Result<OrderType, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<OrderType, D::Error>
         where D: serde::de::Deserializer
     {
         struct OrderTypeVisitor;
 
         impl serde::de::Visitor for OrderTypeVisitor {
             type Value = OrderType;
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("Order Type")
+            }
 
-            fn visit_str<E>(&mut self, value: &str) -> Result<OrderType, E>
+            fn visit_str<E>(self, value: &str) -> Result<OrderType, E>
                 where E: serde::de::Error
             {
                 match value {
@@ -237,7 +243,6 @@ pub fn parse_response<T: Deserialize>(buf: &str) -> Result<T, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::*;
     use serde_json;
     use std::collections::HashMap;
 

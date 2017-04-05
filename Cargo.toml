@@ -1,20 +1,19 @@
 [package]
 name = "michromer"
 description = "This is a small library to interact with the stockfighter simulation challenges."
-version = "0.3.4"
+version = "0.4.0"
 authors = ["Elliott Clark <elliott@fb.com>"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/elliottneilclark/michromer"
 
 [dependencies]
-hyper = "0.9.10"
-serde = "0.8"
-serde_json = "0.8"
-serde_macros = "0.8"
-log = "0.3.6"
-chrono = { version = "0.2", features = ["serde", "rustc-serialize"] }
-clippy = {version = "0.0.85", optional = true}
+hyper = "0.10.5"
+serde = "0.9"
+serde_derive = "0.9"
+serde_json = "0.9"
+log = "0.3.7"
+chrono = { version = "0.3", features = ["serde", "rustc-serialize"] }
 
 [features]
 default = []

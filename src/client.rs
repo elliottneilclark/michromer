@@ -1,7 +1,7 @@
 use error::Result;
 use http::HttpClient;
 use http::AuthHttpClient;
-use serde::de::Deserialize;
+use serde::Deserialize;
 use serde_json;
 use data::{HeartBeatResponse, Level, Order, OrderResponse, OrderbookResponse, QuoteResponse,
            StockListResponse, VenueHeartBeatResponse, parse_response};
